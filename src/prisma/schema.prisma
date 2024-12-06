@@ -1,0 +1,59 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id         Int      @id @default(autoincrement())
+  firstName  String   @map("first_name")
+  lastName   String   @map("last_name")
+  email      String
+  phone      String
+  status     String   @default("0")
+  note       String?
+  rentals    Rental[]
+
+  @@map("customer")
+}
+
+model Category {
+  number      String     @id
+  description String
+  equipments  Equipment[]
+
+  @@map("category")
+}
+
+model Equipment {
+  id             Int       @id @default(autoincrement())
+  categoryNumber String    @map("category_number")
+  name           String    @default("unknown")
+  description    String?
+  dailyCost      Decimal   @map("daily_cost")
+  status         String    @default("0")
+  rentalId       Int?      @map("rental_id")
+  rentalDate     DateTime? @map("rental_date")
+  returnDate     DateTime? @map("return_date")
+  rentalCost     Decimal   @default(0) @map("rental_cost")
+  category       Category  @relation(fields: [categoryNumber], references: [number])
+  rental         Rental?   @relation(fields: [rentalId], references: [id])
+
+  @@map("equipment")
+}
+
+model Rental {
+  id               Int         @id @default(autoincrement())
+  createDate       DateTime    @default(now()) @map("create_date")
+  customerId       Int         @map("customer_id")
+  customerLastName String      @default("unknown") @map("customer_last_name")
+  total            Decimal
+  customer         Customer    @relation(fields: [customerId], references: [id])
+  equipments       Equipment[]
+
+  @@map("rental")
+}
