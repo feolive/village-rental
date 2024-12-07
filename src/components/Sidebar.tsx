@@ -5,15 +5,14 @@ import { usePathname } from 'next/navigation';
 const Sidebar = () => {
   const pathname = usePathname();
   const menuItems = [
-    { href: '/', label: 'Home' },
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/projects', label: 'Projects' },
-    { href: '/settings', label: 'Settings' },
+    { href: '/dashboard/customer', label: 'Customers', icon: '' },
+    { href: '/dashboard/equipment', label: 'Equipments', icon: '' },
+    { href: '/dashboard/report', label: 'Reports', icon: '' },
   ];
 
   return (
     <div className="h-screen w-64 bg-gray-800 text-white fixed left-0 top-0 p-4">
-      <div className="text-2xl font-bold mb-8">My App</div>
+      <div className="text-2xl font-bold mb-10">Village Rental</div>
       <nav>
         <ul className="space-y-2">
           {menuItems.map((item) => (
