@@ -1,9 +1,9 @@
 'use server';
  
-import { signIn } from '@/auth';
+import { signIn,signOut } from '@/auth';
 import { AuthError } from 'next-auth';
  
-// ...
+
  
 export async function authenticate(
   prevState: string | undefined,
@@ -15,11 +15,21 @@ export async function authenticate(
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
-          return 'Invalid credentials.';
+          throw error;
         default:
           return 'Something went wrong.';
       }
     }
     throw error;
   }
+}
+
+export async function logout() {
+  try{
+    await signOut();
+  }catch(error){
+    console.log(error);
+    throw error;
+  }
+ 
 }

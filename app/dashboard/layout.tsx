@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: 'A modern Next.js application with navigation sidebar',
 }
 
-export default function RootLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode

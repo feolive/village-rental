@@ -1,7 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "@/auth";
+import clsx from "clsx";
+import { signOut } from "next-auth/react";
+import { logout } from "@/app/lib/actions";
+import { log } from "console";
 
 const Sidebar = () => {
   const pathname = usePathname();
@@ -19,22 +22,23 @@ const Sidebar = () => {
         <ul className="space-y-6">
           {menuItems.map((item) => (
             <li key={item.href}>
-              <Link href={item.href} className="btn btn-ghost text-xl">
+              <Link
+                href={item.href}
+                className={clsx("btn btn-ghost text-xl", {
+                  "btn-active": pathname === item.href,
+                })}
+              >
                 {item.label}
               </Link>
             </li>
           ))}
         </ul>
       </nav>
-      {/* <form
-        onSubmit={async () => {
-          await signOut();
-        }}
-      >
-        <button type="submit" className="btn glass">
+      <form className="absolute bottom-8 inset-x-1/3" onSubmit={async (e) => { e.preventDefault();  await logout(); }}>
+        <button type="submit" className="btn btn-outline">
           Logout
         </button>
-      </form> */}
+      </form>
     </div>
   );
 };

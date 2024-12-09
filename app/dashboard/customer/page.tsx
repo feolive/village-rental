@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import {sql} from '@vercel/postgres'
 import { Customer } from '@prisma/client'
 
 export default function Page() {
