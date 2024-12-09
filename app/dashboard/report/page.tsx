@@ -14,18 +14,20 @@ import {
   Legend,
 } from 'chart.js'
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-)
+
 
 export default function ReportPage() {
+  ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend
+  )
+  
   const [salesByDate, setSalesByDate] = useState<any>({})
   const [salesByCustomer, setSalesByCustomer] = useState<any>({})
   const [itemsByCategory, setItemsByCategory] = useState<any[]>([])
@@ -57,7 +59,7 @@ export default function ReportPage() {
 
   const handleDownload = (chartType: string) => {
     // Implement download logic here
-    console.log(`Downloading ${chartType} chart`)
+    // console.log(`Downloading ${chartType} chart`)
   }
 
   return (
