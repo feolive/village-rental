@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 }
 
 export default function DashboardLayout({
-  children,
+  children
 }: {
   children: React.ReactNode
 }) {
   return (
-    <div>
+    <div className='text-base-content bg-base-100'>
       <Sidebar />
       <main className="ml-64 p-8">
         {children}

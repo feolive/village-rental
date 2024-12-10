@@ -17,7 +17,7 @@ export const authConfig = {
       return true;
     },
     async redirect({ url, baseUrl }) {
-      return `${baseUrl}/dashboard`;
+      return `${baseUrl}/dashboard/customer`;
     },
   },
   providers: [], // Add providers with an empty array for now

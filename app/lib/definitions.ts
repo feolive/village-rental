@@ -5,17 +5,18 @@ export type LocalUser = User & {
 };
 
 export type Customer = {
-    id: number;
+    id: string;
     first_name: string;
     last_name: string;
     email: string;
     phone: string;
     status: string;
     note: string;
+    avatar: string;
 };
 
 export type Equipment = {
-    id: number;
+    id: string;
     category_number: string;
     name: string;
     description: string;
@@ -31,13 +32,13 @@ export type Equipment = {
 
 
 export type Category = {
-    number: number;
+    number: string;
     description: string;
 };
 
 
 export type Rental = {
-    id: number;
+    id: string;
     create_date: Date;
     customer_id: number;
     customer_last_name: string;

@@ -16,7 +16,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="h-screen w-64 bg-gray-800 text-white fixed left-0 top-0 p-4">
+    <div className="h-screen w-64 bg-gray-800 text-neutral-content fixed left-0 top-0 p-4">
       <div className="text-2xl font-bold mb-16">Village Rental</div>
       <nav className="py-12">
         <ul className="space-y-6">
@@ -34,11 +34,7 @@ const Sidebar = () => {
           ))}
         </ul>
       </nav>
-      <form className="absolute bottom-8 inset-x-1/3" onSubmit={async (e) => { e.preventDefault();  await logout(); }}>
-        <button type="submit" className="btn btn-outline">
-          Logout
-        </button>
-      </form>
+      <button className="absolute bottom-12 inset-x-1/3 btn btn-outline rounded-badge" onClick={async () => { await logout(); }}>Logout</button>
     </div>
   );
 };

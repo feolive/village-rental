@@ -41,7 +41,7 @@ export default function LoginForm({
   };
 
   return (
-    <div className="card bg-base-100 w-full h- max-w-sm shrink-0 shadow-2xl mr-4">
+    <div className="card bg-base-100 w-full h- max-w-sm shrink-0 shadow-2xl mr-4 opacity-90">
       <form className="card-body" onSubmit={handleSubmit}>
         <div className="form-control ">
           <label className="label">

@@ -1,35 +1,48 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import {sql} from '@vercel/postgres'
-import { Customer } from '@prisma/client'
+import { useState, useEffect } from "react";
+import { Customer } from "@/app/lib/definitions";
+import { fetchCustomers } from "@/app/lib/data-brokers";
+import CustomerModal from "@/components/CustomerModal";
+
 
 export default function Page() {
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [searchId, setSearchId] = useState('')
-  const [searchName, setSearchName] = useState('')
-  const [searchStatus, setSearchStatus] = useState('')
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [searchId, setSearchId] = useState("");
+  const [searchName, setSearchName] = useState("");
+  const [searchStatus, setSearchStatus] = useState("");
+  const [displayModal, setDisplayModal] = useState(false);
+  const [currentCustomer, setCurrentCustomer] = useState<Customer>(
+    {} as Customer
+  );
 
-  // useEffect(() => {
-  //   fetchCustomers()
-  // }, [])
+  useEffect(() => {
+    allCustomers();
+  }, []);
 
-  const fetchCustomers = async () => {
-    const response = await fetch('/api/customer')
-    const data = await response.json()
-    setCustomers(data)
-  }
+  const allCustomers = async () => {
+    const data = await fetchCustomers(null);
+    setCustomers(data);
+  };
 
   const handleSearch = async () => {
-    const response = await fetch(`/api/customer?id=${searchId}&name=${searchName}&status=${searchStatus}`)
-    const data = await response.json()
-    setCustomers(data)
-  }
+    const customers = await fetchCustomers({
+      id: searchId,
+      name: searchName,
+      status: searchStatus,
+    });
+    setCustomers(customers);
+  };
+
+  const editCustomer = (customer: Customer) => {
+    setDisplayModal(true);
+    setCurrentCustomer(customer);
+  };
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Customer Management</h1>
-      
+
       {/* Search Form */}
       <div className="mb-4">
         <input
@@ -41,7 +54,7 @@ export default function Page() {
         />
         <input
           type="text"
-          placeholder="Customer Name"
+          placeholder="Last Name"
           className="input input-bordered mr-2"
           value={searchName}
           onChange={(e) => setSearchName(e.target.value)}
@@ -62,11 +75,10 @@ export default function Page() {
       </div>
 
       {/* Customer Table */}
-      <div className="overflow-x-auto">
-        <table className="table w-full">
+      <div className="overflow-scroll mt-16">
+        <table className="table w-3/4">
           <thead>
             <tr>
-              <th>ID</th>
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
@@ -75,21 +87,51 @@ export default function Page() {
             </tr>
           </thead>
           <tbody>
-            {customers.map((customer) => (
+            {customers?.map((customer) => (
               <tr key={customer.id}>
-                <td>{customer.id}</td>
-                <td>{`${customer.firstName} ${customer.lastName}`}</td>
+                <td>
+                  <div className="flex items-center gap-3">
+                    <div className="avatar">
+                      <div className="mask mask-squircle h-12 w-12 rounded-full">
+                        <img
+                          src={customer.avatar.trim()==""?"/images/avatar.png":customer.avatar} 
+                          alt="Avatar"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-bold">{`${customer.first_name} ${customer.last_name}`}</div>
+                      <div className="text-sm opacity-50">ID: {customer.id}</div>
+                    </div>
+                  </div>
+                </td>
                 <td>{customer.email}</td>
                 <td>{customer.phone}</td>
-                <td>{customer.status === '0' ? 'Inactive' : customer.status === '1' ? 'Active' : '10% Discount'}</td>
                 <td>
-                  <button className="btn btn-sm btn-outline">Edit</button>
+                  {customer.status.trim() == "0"
+                    ? "Inactive"
+                    : customer.status.trim() === "1"
+                    ? "Active"
+                    : "10% Discount"}
+                </td>
+                <td>
+                  <button
+                    className="btn btn-info btn-xs btn-outline"
+                    onClick={() => editCustomer(customer)}
+                  >
+                    Edit
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        <CustomerModal
+          display={displayModal}
+          customer={currentCustomer}
+          setDisplayModal={setDisplayModal}
+        />
       </div>
     </div>
-  )
+  );
 }
