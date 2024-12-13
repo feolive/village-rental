@@ -1,6 +1,6 @@
-'use server';
+"use server";
 
-import {Pool} from 'pg';
+import { Pool } from "pg";
 import { Customer } from "@/app/lib/definitions";
 
 const pool = new Pool({
@@ -20,9 +20,9 @@ export async function fetchCustomers(
     const status = params?.status;
 
     const sql = `SELECT * FROM customer where 1=1 \
-    ${!isNull(id) ? `and id = '${id}'` : ''} \
-    ${!isNull(name) ?`and last_name like '%${name}%'`:''} \
-    ${!isNull(status) ? `and status = '${status}'` : ''} \
+    ${!isNull(id) ? `and id = '${id}'` : ""} \
+    ${!isNull(name) ? `and last_name like '%${name}%'` : ""} \
+    ${!isNull(status) ? `and status = '${status}'` : ""} \
     order by last_name, first_name;`;
     const { rows } = await pool.query(sql);
 
@@ -39,11 +39,64 @@ export async function fetchEquipments(
     const id = params?.id;
     const name = params?.name;
     const category = params?.category;
-    const sql = `SELECT * FROM equipment where 1=1 
-    ${typeof id != 'undefined' && id!=null ? `and id = ${id}` : ''} ${typeof name != 'undefined' && name !=null ? `and name like ${name}` : ''} 
-    ${typeof category != 'undefined' && category !=null ? `and category_number = ${category}` : ''} ;`;
+    const sql = `SELECT * FROM equipment where 1=1 \
+    ${!isNull(id) ? `and id = '${id}'` : ""} \
+    ${!isNull(name) ? `and name like '${name}'` : ""} \
+    ${!isNull(category) ? `and category_number = '${category}'` : ""} order by id;`;
     const { rows } = await pool.query(sql);
 
+    return rows;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function fetchCategories() {
+  try {
+    const { rows } = await pool.query("SELECT * FROM category;");
+    return rows;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function fetchSalesByDate() {
+  try {
+    const sql = "select to_char(create_date,'yyyy-mm-dd') as create_date, \
+                	case  when total is null then 0 \
+                	else total \
+                	end as total \
+                from rental order by create_date ";
+    const { rows } = await pool.query(sql);
+    return rows;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function fetchSalesByCustomer() {
+  try {
+    const sql =
+      "select c.first_name||' '||c.last_name as name, \
+      case when r.total is null then 0 \
+      else r.total \
+      end as total \
+      from customer c \
+      left join rental r on c.id = r.customer_id \
+      order by c.last_name, c.first_name ";
+    const { rows } = await pool.query(sql);
+    return rows;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function fetchItemsByCategory() {
+  try {
+    const sql = "select e.id,c.description as ctg,e.name,e.description,e.daily_cost\
+                from equipment e\
+                right join category c on e.category_number = c.number order by 2,3";
+    const { rows } = await pool.query(sql);
     return rows;
   } catch (e) {
     console.log(e);
@@ -66,9 +119,9 @@ export async function addCustomer(customer: Customer) {
       ]
     );
     return rows[0];
-  }catch(e){
+  } catch (e) {
     console.log(e);
-  }finally{
+  } finally {
     client?.release();
   }
 }
@@ -90,17 +143,22 @@ export async function updateCustomer(customer: Customer) {
       ]
     );
     return rows[0];
-  }catch(e){
+  } catch (e) {
     console.log(e);
-  }finally{
+  } finally {
     client?.release();
   }
 }
 
-function isNull(obj: any) : boolean {
-  if (typeof obj === 'undefined' || obj === null || obj === undefined || obj === '') {
+function isNull(obj: any): boolean {
+  if (
+    typeof obj === "undefined" ||
+    obj === null ||
+    obj === undefined ||
+    obj === ""
+  ) {
     return true;
   }
-  
+
   return false;
 }

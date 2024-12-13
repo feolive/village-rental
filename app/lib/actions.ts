@@ -31,5 +31,4 @@ export async function logout() {
     console.log(error);
     throw error;
   }
- 
 }

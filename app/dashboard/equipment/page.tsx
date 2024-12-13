@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Equipment, Category } from '@prisma/client'
+import { Equipment, Category } from '@/app/lib/definitions'
+import { fetchEquipments, fetchCategories } from '@/app/lib/data-brokers'
 
 export default function EquipmentPage() {
   const [equipments, setEquipments] = useState<Equipment[]>([])
@@ -11,26 +12,24 @@ export default function EquipmentPage() {
   const [searchCategory, setSearchCategory] = useState('')
 
   useEffect(() => {
-    fetchEquipments()
-    fetchCategories()
+    allEquipments()
+    fetchCategories().then((categories) => {
+      setCategories(categories)
+    })
   }, [])
 
-  const fetchEquipments = async () => {
-    const response = await fetch('/api/equipment')
-    const data = await response.json()
-    setEquipments(data)
+  const allEquipments = async () => {
+    const equipments = await fetchEquipments(null);
+    setEquipments(equipments)
   }
-
-  const fetchCategories = async () => {
-    const response = await fetch('/api/category')
-    const data = await response.json()
-    setCategories(data)
-  }
-
+ 
   const handleSearch = async () => {
-    const response = await fetch(`/api/equipment?id=${searchId}&name=${searchName}&category=${searchCategory}`)
-    const data = await response.json()
-    setEquipments(data)
+    const equipments = await fetchEquipments({
+      id: searchId,
+      name: searchName,
+      category: searchCategory
+    });
+    setEquipments(equipments)
   }
 
   return (
@@ -84,15 +83,15 @@ export default function EquipmentPage() {
             </tr>
           </thead>
           <tbody>
-            {equipments.map((equipment) => (
+            {equipments?.map((equipment) => (
               <tr key={equipment.id}>
                 <td>{equipment.id}</td>
                 <td>{equipment.name}</td>
-                <td>{equipment.categoryNumber}</td>
-                <td>{equipment.dailyCost.toString()}</td>
+                <td>{equipment.category_number}</td>
+                <td>{equipment.daily_cost.toString()}</td>
                 <td>{equipment.status === '0' ? 'Available' : 'Rented'}</td>
                 <td>
-                  <button className="btn btn-sm btn-outline">Edit</button>
+                  <button className="btn btn-xs btn-info btn-outline">Edit</button>
                 </td>
               </tr>
             ))}

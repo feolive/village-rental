@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Customer } from "@/app/lib/definitions";
 import { fetchCustomers } from "@/app/lib/data-brokers";
 import CustomerModal from "@/components/CustomerModal";
+import { set } from "zod";
 
 
 export default function Page() {
@@ -12,9 +13,7 @@ export default function Page() {
   const [searchName, setSearchName] = useState("");
   const [searchStatus, setSearchStatus] = useState("");
   const [displayModal, setDisplayModal] = useState(false);
-  const [currentCustomer, setCurrentCustomer] = useState<Customer>(
-    {} as Customer
-  );
+  const [currentCustomer, setCurrentCustomer] = useState<Customer>({} as Customer);
 
   useEffect(() => {
     allCustomers();
@@ -38,6 +37,7 @@ export default function Page() {
     setDisplayModal(true);
     setCurrentCustomer(customer);
   };
+
 
   return (
     <div className="container mx-auto p-4">
@@ -75,9 +75,9 @@ export default function Page() {
       </div>
 
       {/* Customer Table */}
-      <div className="overflow-scroll mt-16">
+      <div className="overflow-auto w-3/4 h-2/3 mt-16">
         <table className="table w-3/4">
-          <thead>
+          <thead className="sticky top-0 bg-base-100">
             <tr>
               <th>Name</th>
               <th>Email</th>
@@ -128,8 +128,8 @@ export default function Page() {
         </table>
         <CustomerModal
           display={displayModal}
+          displayStatus={setDisplayModal}
           customer={currentCustomer}
-          setDisplayModal={setDisplayModal}
         />
       </div>
     </div>
