@@ -1,7 +1,8 @@
 "use server";
 
 import { Pool } from "pg";
-import { Customer } from "@/app/lib/definitions";
+import { Customer,Category,RentalQuery } from "@/app/lib/definitions";
+import { isNull } from "@/app/lib/utils";
 
 const pool = new Pool({
   user: "test",
@@ -103,21 +104,138 @@ export async function fetchItemsByCategory() {
   }
 }
 
-export async function addCustomer(customer: Customer) {
+export async function fetchRental(params: RentalQuery | null) {
+  try {
+    const rental_date = params?.rental_date;
+    const return_date = params?.return_date;
+    const equipment = params?.equipment_name;
+    const customer_last_name = params?.last_name;
+
+    const sql = `select r.id,r.customer_id,c.first_name , c.last_name, r.create_date,e.id,e.name as equipment_name,e.daily_cost, e.rental_date, e.return_date, r.total \
+                from rental r \
+                inner join equipment e on r.id = e.rental_id \
+                inner join customer c on c.id = r.customer_id \
+                where 1=1 ${!isNull(customer_last_name) ? `and lower(r.customer_last_name) like lower('%${customer_last_name}%')` : ''} \
+                ${!isNull(equipment) ? `and lower(e.name) like lower('%${equipment}%')` : ''} \
+                ${!isNull(rental_date) ? `and rental_date >= '${rental_date}'` : ''} \
+                ${!isNull(return_date) ? `and  return_date <= '${return_date}'` : ''}`;
+    const { rows } = await pool.query(sql);
+    return rows;
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function addRental(rental: RentalQuery) {
+  let client;
+  try {
+    client = await pool.connect();
+    let rentalSql = "INSERT INTO rental (id,customer_id, equipment_id, create_date, rental_date, return_date, total) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;";
+
+    const { rows } = await client.query(rentalSql,
+      [
+        rental.id,
+        rental.customer_id,
+        rental.equipment_id,
+        rental.create_date,
+        rental.rental_date,
+        rental.return_date,
+        rental.total,
+      ]
+    );
+    return rows[0];
+  } catch (e) {
+    console.log(e);
+  } finally {
+    client?.release();
+  }
+}
+
+export async function updateRental(rental: RentalQuery) {
+  let client;
+  try {
+    if(isNull(rental)){
+      throw new Error("Rental is null");
+    }
+    if(isNull(rental.id)){
+      throw new Error("Rental id is null");
+    }
+    if(isNull(rental.customer_id) && isNull(rental.equipment_id) && isNull(rental.create_date) && isNull(rental.rental_date) && isNull(rental.return_date) && isNull(rental.total)){
+      throw new Error("nothing to be updated");
+    }
+
+    client = await pool.connect();
+    let rentalSql = "UPDATE rental SET ";
+    let setValues = [];
+    let whereClause = "id = $1";
+    if (!isNull(rental.customer_id)) {
+      setValues.push(rental.customer_id);
+      rentalSql += "customer_id = $" + (setValues.length + 1) + ", ";
+    }
+    if (!isNull(rental.equipment_id)) {
+      setValues.push(rental.equipment_id);
+      rentalSql += "equipment_id = $" + (setValues.length + 1) + ", ";
+    }
+    if (!isNull(rental.create_date)) {
+      setValues.push(rental.create_date);
+      rentalSql += "create_date = $" + (setValues.length + 1) + ", ";
+    }
+    if (!isNull(rental.rental_date)) {
+      setValues.push(rental.rental_date);
+      rentalSql += "rental_date = $" + (setValues.length + 1) + ", ";
+    }
+    if (!isNull(rental.return_date)) {
+      setValues.push(rental.return_date);
+      rentalSql += "return_date = $" + (setValues.length + 1) + ", ";
+    }
+    if (!isNull(rental.total)) {
+      setValues.push(rental.total);
+      rentalSql += "total = $" + (setValues.length + 1) + ", ";
+    }
+    setValues.push(rental.id);
+    rentalSql = rentalSql.slice(0, -2) + " WHERE " + whereClause;
+    
+    const { rows } = await client.query(rentalSql);
+    return rows[0];
+  } catch (e) {
+    console.log(e);
+  } finally {
+    client?.release();
+  }
+}
+
+export async function addCategory(category: Category) {
   let client;
   try {
     client = await pool.connect();
     const { rows } = await client.query(
-      "INSERT INTO customer (first_name, last_name, email, phone, status, note) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;",
-      [
-        customer.first_name,
-        customer.last_name,
-        customer.email,
-        customer.phone,
-        customer.status,
-        customer.note,
-      ]
+      "INSERT INTO category (number,description) VALUES ($1, $2) RETURNING *;",
+      [category.number, category.description]
     );
+    return rows[0];
+  } catch (e) {
+    console.log(e);
+  } finally {
+    client?.release();
+  }
+}
+
+export async function addCustomer(customer: Customer) {
+  let client;
+  let sql;
+  try {
+    client = await pool.connect();
+    sql = "INSERT INTO customer (id,first_name, last_name, email, phone, status, note) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;";
+      
+    const { rows } = await client.query(sql, [
+      customer.id,
+      customer.first_name,
+      customer.last_name,
+      customer.email,
+      customer.phone,
+      customer.status,
+      customer.note,
+    ]);
     return rows[0];
   } catch (e) {
     console.log(e);
@@ -150,15 +268,4 @@ export async function updateCustomer(customer: Customer) {
   }
 }
 
-function isNull(obj: any): boolean {
-  if (
-    typeof obj === "undefined" ||
-    obj === null ||
-    obj === undefined ||
-    obj === ""
-  ) {
-    return true;
-  }
 
-  return false;
-}

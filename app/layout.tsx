@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" data-theme="dim">
+    <html lang="en" data-theme="emerald">
       <body className={inter.className}>
         {children}
       </body>

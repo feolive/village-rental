@@ -36,6 +36,19 @@ export type Category = {
     description: string;
 };
 
+export type RentalQuery = {
+    id: string;
+    customer_id: string;
+    equipment_id: string;
+    equipment_name: string;
+    daily_cost: number;
+    create_date: Date;
+    rental_date: Date;
+    return_date: Date;
+    first_name: string;
+    last_name: string;
+    total: number;
+};
 
 export type Rental = {
     id: string;
