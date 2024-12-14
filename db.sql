@@ -83,9 +83,9 @@ insert into category (number, description) values
 
 -- insert into customer
 insert into customer (id, first_name, last_name, email, phone, status, avatar, note) values
-('1001','John','Doe','jd@sample.net','(555)555-1212','0','',''),
+('1001','John','Doe','jd@sample.net','(555)555-1212','0','https://cdn.jsdelivr.net/gh/alohe/avatars/png/bluey_4.png',''),
 ('1002','Jane','Smith','js@live.com','(555)555-3434','1','',''),
-('1003','Michael','Lee','ml@sample.net','(555)555-5656','2','','')
+('1003','Michael','Lee','ml@sample.net','(555)555-5656','2','https://cdn.jsdelivr.net/gh/alohe/avatars/png/toon_2.png','')
 ;
 
 -- insert into rental
