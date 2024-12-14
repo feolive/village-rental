@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { RentalQuery,Customer,Equipment } from "@/app/lib/definitions";
-import { fetchRental,fetchCustomers,fetchEquipments } from "@/app/lib/data-brokers";
+import { RentalQuery, Customer, Equipment } from "@/app/lib/definitions";
+import {fetchRental,fetchCustomers,fetchEquipments} from "@/app/lib/data-brokers";
 import RentalModal from "@/components/RentalModal";
 
 export default function Page() {
@@ -15,8 +15,6 @@ export default function Page() {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [displayUpdate, setDisplayUpdate] = useState(false);
   const [displayAdd, setDisplayAdd] = useState(false);
-
-
 
   useEffect(() => {
     allRentals();
@@ -109,51 +107,66 @@ export default function Page() {
         />
       </div>
       <button className="btn btn-primary w-28" onClick={handleSearch}>
-          Search
+        Search
       </button>
 
-      {/* Customer Table */}
-      <div className="overflow-auto w-3/4 h-2/3 mt-16">
-        <table className="table w-3/4">
-          <thead className="sticky top-0 bg-base-100">
-            <tr>
-              <th>Name</th>
-              <th>Date</th>
-              <th>Equipment</th>
-              <th>Rental Date</th>
-              <th>Return Date</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rentals?.map((rental) => (
-              <tr key={rental.id}>
-                <td>
-                  {rental.first_name} {rental.last_name}
-                </td>
-                <td>{rental.create_date.toLocaleString()}</td>
-                <td>{rental.equipment_name}</td>
-                <td>{rental.rental_date.toLocaleString()}</td>
-                <td>{rental.return_date.toLocaleString()}</td>
-                <td>{rental.total}</td>
-                
-                <td>
-                  <button
-                    className="btn btn-accent btn-xs btn-outline"
-                    onClick={() => handleEditRental(rental)}
-                  >
-                    Edit
-                  </button>
-                </td>
+      <div className="flex justify-content items-center">
+        {/* Customer Table */}
+        <div className="overflow-auto w-3/4 h-2/3 mt-16">
+          <table className="table w-3/4">
+            <thead className="sticky top-0 bg-base-100">
+              <tr>
+                <th>Rental ID</th>
+                <th>Name</th>
+                <th>Date</th>
+                <th>Equipment</th>
+                <th>Rental Date</th>
+                <th>Return Date</th>
+                <th>Total</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rentals?.map((rental) => (
+                <tr key={rental.id}>
+                  <td>{rental.id}</td>
+                  <td>
+                    {rental.first_name} {rental.last_name}
+                  </td>
+                  <td>{rental.create_date.toLocaleString()}</td>
+                  <td>{rental.equipment_name}</td>
+                  <td>{rental.rental_date.toLocaleString()}</td>
+                  <td>{rental.return_date.toLocaleString()}</td>
+                  <td>{rental.total}</td>
+
+                  <td>
+                    <button
+                      className="btn btn-accent btn-xs btn-outline"
+                      onClick={() => handleEditRental(rental)}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <RentalModal
+            display={displayUpdate}
+            displayStatus={setDisplayUpdate}
+            rental={editRental}
+            isUpdate={true}
+            customers={customers}
+            equipments={equipments}
+          />
+        </div>
+        <button className="btn btn-primary w-28" onClick={addRental}>
+          Add Rental
+        </button>
         <RentalModal
-          display={displayUpdate}
-          displayStatus={setDisplayUpdate}
-          rental={editRental}
-          isUpdate={true}
+          display={displayAdd}
+          displayStatus={setDisplayAdd}
+          rental={{} as RentalQuery}
+          isUpdate={false}
           customers={customers}
           equipments={equipments}
         />

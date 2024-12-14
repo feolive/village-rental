@@ -1,20 +1,28 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Equipment, Category } from "@/app/lib/definitions";
+import { Equipment, Category,EquipmentQuery } from "@/app/lib/definitions";
 import {
   fetchEquipments,
   fetchCategories,
   addCategory,
 } from "@/app/lib/data-brokers";
+import EquipmentModal from "@/components/EquipmentModal";
+
 
 export default function EquipmentPage() {
-  const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [equipments, setEquipments] = useState<EquipmentQuery[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchId, setSearchId] = useState("");
   const [searchName, setSearchName] = useState("");
   const [searchCategory, setSearchCategory] = useState("");
   const [newCtg, setNewCtg] = useState<Category>({} as Category);
+
+  const [displayUpdate, setDisplayUpdate] = useState(false);
+  const [displayAdd, setDisplayAdd] = useState(false);
+  const [currentEquipment, setCurrentEquipment] = useState<Equipment>(
+    {} as Equipment
+  );
 
   const ctgRef = useRef<HTMLDivElement>(null);
 
@@ -61,10 +69,28 @@ export default function EquipmentPage() {
     }
   };
 
+  const openAddEquipment = () => {   
+    setCurrentEquipment({} as Equipment);
+    setDisplayAdd(true);
+  } 
 
-  const openEditCategory = () => {
-
+  const openEditEquipment = (equipment: EquipmentQuery) => {
+    setCurrentEquipment(convertEquipment(equipment));
+    setDisplayUpdate(true);
   }
+
+  const convertEquipment = (equipment: EquipmentQuery): Equipment => {
+    return {
+      id: equipment.id,
+      category_number: equipment.category_number,
+      name: equipment.name,
+      description: equipment.description,
+      daily_cost: equipment.daily_cost,
+      status: equipment.status,
+      rental_date: equipment.rental_date,
+      return_date: equipment.return_date,
+    } as Equipment;
+  };
 
   const editCategory = () => {
     
@@ -105,7 +131,17 @@ export default function EquipmentPage() {
         <button className="btn btn-primary" onClick={handleSearch}>
           Search
         </button>
+        <button className="ml-28 btn btn-primary" onClick={openAddEquipment}>
+          Add Equipment
+        </button>
       </div>
+      <EquipmentModal
+        display={displayAdd}
+        displayStatus={setDisplayAdd}
+        equipment={{} as Equipment}
+        isUpdate={false}
+        categories={categories}
+      />
 
       {/* Equipment Table */}
       <div className="overflow-x-auto">
@@ -125,11 +161,11 @@ export default function EquipmentPage() {
               <tr key={equipment.id}>
                 <td>{equipment.id}</td>
                 <td>{equipment.name}</td>
-                <td>{equipment.category_number}</td>
+                <td><div className="badge badge-secondary badge-outline">{equipment.ctg}</div></td>
                 <td>{equipment.daily_cost.toString()}</td>
-                <td>{equipment.status === "0" ? "Available" : "Rented"}</td>
+                <td>{equipment.status?.trim() === "0" ? "Available" : "Rented"}</td>
                 <td>
-                  <button className="btn btn-xs btn-accent btn-outline">
+                  <button className="btn btn-xs btn-accent btn-outline" onClick={() => openEditEquipment(equipment)}>
                     Edit
                   </button>
                 </td>
@@ -138,6 +174,13 @@ export default function EquipmentPage() {
           </tbody>
         </table>
       </div>
+      <EquipmentModal
+        display={displayUpdate}
+        displayStatus={setDisplayUpdate}
+        equipment={currentEquipment}
+        isUpdate={true}
+        categories={categories}
+      />
           
       {/* categories */}
       <div className="mt-24">

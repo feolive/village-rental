@@ -22,7 +22,7 @@ export type Equipment = {
     description: string;
     daily_cost: number;
     status: string;
-    rental_id: number;
+    rental_id: string;
     rental_date: Date;
     return_date: Date;
     rental_cost: number;
@@ -30,6 +30,17 @@ export type Equipment = {
     updatedAt: Date;
 };
 
+export type EquipmentQuery = {
+    id: string;
+    name: string;
+    category_number: string;
+    ctg: string;
+    description: string;
+    daily_cost: number;
+    rental_date: Date;
+    return_date: Date;
+    status: string;
+}
 
 export type Category = {
     number: string;

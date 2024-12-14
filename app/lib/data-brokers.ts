@@ -1,7 +1,7 @@
 "use server";
 
 import { Pool } from "pg";
-import { Customer,Category,RentalQuery } from "@/app/lib/definitions";
+import { Customer,Category,RentalQuery, Equipment } from "@/app/lib/definitions";
 import { isNull } from "@/app/lib/utils";
 
 const pool = new Pool({
@@ -37,13 +37,17 @@ export async function fetchEquipments(
   params: { id: string; name: string; category: string } | null
 ) {
   try {
-    const id = params?.id;
-    const name = params?.name;
-    const category = params?.category;
-    const sql = `SELECT * FROM equipment where 1=1 \
-    ${!isNull(id) ? `and id = '${id}'` : ""} \
-    ${!isNull(name) ? `and name like '${name}'` : ""} \
-    ${!isNull(category) ? `and category_number = '${category}'` : ""} order by id;`;
+    const id = params?.id.trim();
+    const name = params?.name.trim();
+    const category = params?.category.trim();
+    const sql = `SELECT e.id, e.name, c.description as ctg, e.description, e.daily_cost, e.rental_date, e.return_date, e.status \
+    FROM equipment e \
+    left join rental r on r.id = e.rental_id \
+    left join category c on c.number = e.category_number \
+    where 1=1 \
+    ${!isNull(id) ? `and e.id = '${id}'` : ""} \
+    ${!isNull(name) ? `and e.name like '${name}'` : ""} \
+    ${!isNull(category) ? `and e.category_number = '${category}'` : ""} order by id;`;
     const { rows } = await pool.query(sql);
 
     return rows;
@@ -79,11 +83,12 @@ export async function fetchSalesByCustomer() {
   try {
     const sql =
       "select c.first_name||' '||c.last_name as name, \
-      case when r.total is null then 0 \
-      else r.total \
+      case when sum(r.total) is null then 0 \
+      else sum(r.total) \
       end as total \
       from customer c \
       left join rental r on c.id = r.customer_id \
+      group by c.id \
       order by c.last_name, c.first_name ";
     const { rows } = await pool.query(sql);
     return rows;
@@ -111,14 +116,14 @@ export async function fetchRental(params: RentalQuery | null) {
     const equipment = params?.equipment_name;
     const customer_last_name = params?.last_name;
 
-    const sql = `select r.id,r.customer_id,c.first_name , c.last_name, r.create_date,e.id,e.name as equipment_name,e.daily_cost, e.rental_date, e.return_date, r.total \
+    const sql = `select r.id,r.customer_id,c.first_name , c.last_name, r.create_date,e.id as equipment_id,e.name as equipment_name,e.daily_cost, e.rental_date, e.return_date, r.total \
                 from rental r \
                 inner join equipment e on r.id = e.rental_id \
                 inner join customer c on c.id = r.customer_id \
                 where 1=1 ${!isNull(customer_last_name) ? `and lower(r.customer_last_name) like lower('%${customer_last_name}%')` : ''} \
                 ${!isNull(equipment) ? `and lower(e.name) like lower('%${equipment}%')` : ''} \
                 ${!isNull(rental_date) ? `and rental_date >= '${rental_date}'` : ''} \
-                ${!isNull(return_date) ? `and  return_date <= '${return_date}'` : ''}`;
+                ${!isNull(return_date) ? `and  return_date <= '${return_date}'` : ''} order by r.create_date;`;
     const { rows } = await pool.query(sql);
     return rows;
   } catch (e) {
@@ -130,16 +135,14 @@ export async function addRental(rental: RentalQuery) {
   let client;
   try {
     client = await pool.connect();
-    let rentalSql = "INSERT INTO rental (id,customer_id, equipment_id, create_date, rental_date, return_date, total) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;";
+    let rentalSql = "INSERT INTO rental (id,customer_id, create_date, customer_last_name, total) VALUES ($1, $2, $3, $4, $5) RETURNING *;";
 
     const { rows } = await client.query(rentalSql,
       [
         rental.id,
-        rental.customer_id,
-        rental.equipment_id,
-        rental.create_date,
-        rental.rental_date,
-        rental.return_date,
+        rental.customer_id.trim(),
+        new Date().toISOString(),
+        rental.last_name.trim(),
         rental.total,
       ]
     );
@@ -165,39 +168,166 @@ export async function updateRental(rental: RentalQuery) {
     }
 
     client = await pool.connect();
-    let rentalSql = "UPDATE rental SET ";
-    let setValues = [];
-    let whereClause = "id = $1";
-    if (!isNull(rental.customer_id)) {
-      setValues.push(rental.customer_id);
-      rentalSql += "customer_id = $" + (setValues.length + 1) + ", ";
-    }
-    if (!isNull(rental.equipment_id)) {
-      setValues.push(rental.equipment_id);
-      rentalSql += "equipment_id = $" + (setValues.length + 1) + ", ";
-    }
-    if (!isNull(rental.create_date)) {
-      setValues.push(rental.create_date);
-      rentalSql += "create_date = $" + (setValues.length + 1) + ", ";
-    }
-    if (!isNull(rental.rental_date)) {
-      setValues.push(rental.rental_date);
-      rentalSql += "rental_date = $" + (setValues.length + 1) + ", ";
-    }
-    if (!isNull(rental.return_date)) {
-      setValues.push(rental.return_date);
-      rentalSql += "return_date = $" + (setValues.length + 1) + ", ";
-    }
-    if (!isNull(rental.total)) {
-      setValues.push(rental.total);
-      rentalSql += "total = $" + (setValues.length + 1) + ", ";
-    }
-    setValues.push(rental.id);
-    rentalSql = rentalSql.slice(0, -2) + " WHERE " + whereClause;
-    
-    const { rows } = await client.query(rentalSql);
+    const rows = await updateRentalTable(rental, client);
+    const equipmentRows = await updateEquipmentTable(rental, client);
+
     return rows[0];
   } catch (e) {
+    client.query("ROLLBACK");
+    console.log(e);
+  } finally {
+    client?.release();
+  }
+}
+
+async function updateRentalTable(rental: RentalQuery, client: any) {
+  try {
+    let setValues = [];
+    let rentalSql = "UPDATE rental SET ";
+    if (!isNull(rental.customer_id)) {
+      rentalSql += "customer_id = $" + (setValues.length+1) + ", ";
+      setValues.push(rental.customer_id.trim());
+    }
+    if (!isNull(rental.create_date)) {
+      rentalSql += "create_date = $" + (setValues.length+1) + ", ";
+      setValues.push(rental.create_date);
+    }
+    if (!isNull(rental.last_name)) {
+      rentalSql += "customer_last_name = $" + (setValues.length+1) + ", ";
+      setValues.push(rental.last_name.trim());
+    }
+    if (!isNull(rental.total)) {
+      rentalSql += "total = $" + (setValues.length+1) + ", ";
+      setValues.push(Number(rental.total).toFixed(2));
+    }
+    setValues.push(rental.id.trim());
+    rentalSql = rentalSql.slice(0, -2) + " WHERE id = $" + (setValues.length);
+    const { rows } = await client.query(rentalSql, setValues);
+
+    return rows[0];
+  } catch (e) {
+    console.log(e);
+  } 
+}
+
+async function updateEquipmentTable(rental: RentalQuery, client: any) {
+  try {
+    let setValues = [];
+    let equipmentSql = "UPDATE equipment SET ";
+    if (!isNull(rental.rental_date)) {
+      equipmentSql += "rental_date = $" + (setValues.length+1) + ", ";
+      setValues.push(rental.rental_date);
+    }
+    if (!isNull(rental.return_date)) {
+      equipmentSql += "return_date = $" + (setValues.length+1) + ", ";
+      setValues.push(rental.return_date);
+    }
+    if (!isNull(rental.id)) {
+      equipmentSql += "rental_id = $" + (setValues.length+1) + ", ";
+      setValues.push(rental.id.trim());
+    }
+    setValues.push(rental.equipment_id.trim());
+    equipmentSql = equipmentSql.slice(0, -2) + " WHERE id = $" + (setValues.length);
+    const { rows } = await client.query(equipmentSql, setValues);  
+    return rows[0];
+  } catch (e) {
+    console.log(e);
+  } 
+} 
+
+export async function updateEquipment(equipment: Equipment) {
+  let client;
+  try {
+    client = await pool.connect();
+    let setValues = [];
+    let sql = "UPDATE equipment SET ";
+    if(isNull(equipment.id)){
+      throw new Error("Equipment id is null");
+    }
+    if(!isNull(equipment.category_number)){
+      sql += "category_number = $" + (setValues.length+1) + ", ";
+      setValues.push(equipment.category_number.trim());
+    }
+    if(!isNull(equipment.name)){
+      sql += "name = $" + (setValues.length+1) + ", ";
+      setValues.push(equipment.name.trim());
+    }
+    if(!isNull(equipment.description)){
+      sql += "description = $" + (setValues.length+1) + ", ";
+      setValues.push(equipment.description.trim());
+    }
+    if(!isNull(equipment.daily_cost)){
+      sql += "daily_cost = $" + (setValues.length+1) + ", ";
+      setValues.push(Number(equipment.daily_cost).toFixed(2));
+    }
+    if(!isNull(equipment.status)){
+      sql += "status = $" + (setValues.length+1) + ", ";
+      setValues.push(equipment.status.trim());
+    }
+    if(!isNull(equipment.rental_id)){
+      sql += "rental_id = $" + (setValues.length+1) + ", ";
+      setValues.push(equipment.rental_id.trim());
+    }
+    if(!isNull(equipment.rental_date)){
+      sql += "rental_date = $" + (setValues.length+1) + ", ";
+      setValues.push(equipment.rental_date);
+    }
+    if(!isNull(equipment.return_date)){
+      sql += "return_date = $" + (setValues.length+1) + ", ";
+      setValues.push(equipment.return_date);
+    }
+    if(!isNull(equipment.rental_cost)){
+      sql += "rental_cost = $" + (setValues.length+1) + ", ";
+      setValues.push(Number(equipment.rental_cost).toFixed(2));
+    }
+    setValues.push(equipment.id.trim());
+    sql = sql.slice(0, -2) + " WHERE id = $" + (setValues.length);
+
+    const { rows } = await client.query(
+      sql,
+      setValues
+    );
+    return rows[0];
+  } catch (e) {
+    client.query("ROLLBACK");
+    console.log(e);
+  } finally {
+    client?.release();
+  }
+}
+
+export async function addEquipment(equipment: Equipment) {
+  let client;
+  try {
+    if(isNull(equipment)){
+      throw new Error("Equipment is null");
+    }
+    if(isNull(equipment.id)){
+      throw new Error("Equipment id is null");
+    }
+    if(isNull(equipment.category_number)){
+      throw new Error("Equipment category number is null");
+    }
+    if(isNull(equipment.name)){
+      throw new Error("Equipment name is null");
+    }
+    if(isNull(equipment.daily_cost)){
+      throw new Error("Equipment daily cost is null");
+    }
+    client = await pool.connect();
+    const { rows } = await client.query(
+      "INSERT INTO equipment (id,category_number,name,description,daily_cost) VALUES ($1, $2, $3, $4, $5) RETURNING *;",
+      [
+        equipment.id.trim(),
+        equipment.category_number.trim(),
+        equipment.name.trim(),
+        equipment.description.trim(),
+        Number(equipment.daily_cost).toFixed(2)
+      ]
+    );
+    return rows[0];
+  } catch (e) {
+    client.query("ROLLBACK");
     console.log(e);
   } finally {
     client?.release();
@@ -214,6 +344,7 @@ export async function addCategory(category: Category) {
     );
     return rows[0];
   } catch (e) {
+    client.query("ROLLBACK");
     console.log(e);
   } finally {
     client?.release();
@@ -238,6 +369,7 @@ export async function addCustomer(customer: Customer) {
     ]);
     return rows[0];
   } catch (e) {
+    client.query("ROLLBACK");
     console.log(e);
   } finally {
     client?.release();
@@ -262,6 +394,7 @@ export async function updateCustomer(customer: Customer) {
     );
     return rows[0];
   } catch (e) {
+    client.query("ROLLBACK");
     console.log(e);
   } finally {
     client?.release();

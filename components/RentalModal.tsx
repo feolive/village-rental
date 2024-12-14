@@ -2,10 +2,15 @@
 
 import { RentalQuery, Customer, Equipment } from "@/app/lib/definitions";
 import { useState, useRef, useEffect } from "react";
-import { updateRental, addRental } from "@/app/lib/data-brokers";
+import {
+  updateRental,
+  addRental,
+  fetchEquipments,
+  updateEquipment,
+} from "@/app/lib/data-brokers";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import {daysBetween} from "@/app/lib/utils";
+import { daysBetween } from "@/app/lib/utils";
 
 export default function RentalModal({
   display,
@@ -26,6 +31,10 @@ export default function RentalModal({
     {} as RentalQuery
   );
   const modalRef = useRef<HTMLDialogElement>(null);
+  const nameRef = useRef(null);
+  const equipmentRef = useRef(null);
+  const rentalDateRef = useRef(null);
+  const returnDateRef = useRef(null);
 
   useEffect(() => {
     setCurrentRental(rental);
@@ -50,9 +59,36 @@ export default function RentalModal({
 
   const save = async () => {
     if (isUpdate) {
-      currentRental.total = currentRental.daily_cost * daysBetween(currentRental.rental_date, currentRental.return_date);
+      currentRental.total =
+        currentRental.daily_cost *
+        daysBetween(currentRental.rental_date, currentRental.return_date);
       await updateRental(currentRental);
     } else {
+      const equipments = await fetchEquipments({
+        id: currentRental.equipment_id,
+        name: "",
+        category: "",
+      });
+      let status = equipments[0].status;
+      if (status === "1") {
+        throw new Error("Equipment is already rented");
+      }
+      currentRental.daily_cost = equipments[0].daily_cost;
+      currentRental.total =
+        equipments[0].daily_cost *
+        daysBetween(currentRental.rental_date, currentRental.return_date);
+      currentRental.customer_id = nameRef.current.value;
+      currentRental.last_name =
+        nameRef.current.selectedOptions[0].text.split(" ")[1];
+      currentRental.equipment_id = equipmentRef.current.value;
+      await updateEquipment({
+        ...equipments[0],
+        rental_id: currentRental.id,
+        status: "1",
+        rental_date: currentRental.rental_date,
+        return_date: currentRental.return_date,
+        rental_cost: currentRental.total,
+      });
       await addRental(currentRental);
     }
     console.log(currentRental);
@@ -72,32 +108,32 @@ export default function RentalModal({
           </form>
           <h3 className="font-bold text-lg">Rental Detail</h3>
           <div>
-              {!isUpdate && (
-                <div>
-                  <label className="label">
-                    <span className="label-text">ID</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Type here"
-                    className="input input-bordered w-1/2"
-                    name="id"
-                    value={currentRental.id ?? ""}
-                    onChange={handleOnChange}
-                  />
-                </div>
-              )}
-            </div>
+            {!isUpdate && (
+              <div>
+                <label className="label">
+                  <span className="label-text">ID</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Type here"
+                  className="input input-bordered w-1/2"
+                  name="id"
+                  value={currentRental.id ?? ""}
+                  onChange={handleOnChange}
+                />
+              </div>
+            )}
+          </div>
           <div className="grid grid-flow-row grid-cols-2 gap-2">
-
             <div>
               <label className="label">
                 <span className="label-text">Name</span>
               </label>
               <select
+                ref={nameRef}
                 className="select select-bordered w-full max-w-xs"
                 name="customer_id"
-                value={rental.customer_id}
+                value={currentRental.customer_id}
                 onChange={handleOnChange}
               >
                 {customers &&
@@ -114,9 +150,10 @@ export default function RentalModal({
                 <span className="label-text">Equipment</span>
               </label>
               <select
+                ref={equipmentRef}
                 className="select select-bordered w-full max-w-xs"
                 name="equipment_id"
-                value={rental.equipment_id}
+                value={currentRental.equipment_id}
                 onChange={handleOnChange}
               >
                 {equipments &&
@@ -153,12 +190,17 @@ export default function RentalModal({
                 }
               />
             </div>
-          </div>
-          <div className="modal-action ">
-                <button className="absolute btn btn-primary bottom-4 right-4" onClick={save}>
+            <div className="modal-action ">
+              <form method="content-end">
+                <button
+                  className="absolute btn btn-primary bottom-4 right-4"
+                  onClick={save}
+                >
                   Save
                 </button>
+              </form>
             </div>
+          </div>
         </div>
       </dialog>
     </>
