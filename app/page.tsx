@@ -17,7 +17,7 @@ export default function Home() {
         quasi. In deleniti eaque aut repudiandae et a id nisi.
       </p>
         </div>
-        <LoginForm defaultEmail="test_account@gmail.com" defaultPassword="123456" />
+        <LoginForm defaultEmail="test_account@gmail.com" defaultPassword="eHBxcGt4" />
       </div>
     </div>
   );

@@ -12,7 +12,7 @@ async function getUser(email: string): Promise<LocalUser | undefined> {
       const user: LocalUser[] = [{
         id: '1',
         email: 'test_account@gmail.com',
-        password: '123456'
+        password: 'eHBxcGt4'
       }];
       return user[0];
     } catch (error) {

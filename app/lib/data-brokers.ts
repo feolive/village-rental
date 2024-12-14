@@ -3,13 +3,16 @@
 import { Pool } from "pg";
 import { Customer,Category,RentalQuery, Equipment } from "@/app/lib/definitions";
 import { isNull } from "@/app/lib/utils";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const pool = new Pool({
-  user: "test",
-  host: "localhost",
-  database: "demo_db",
-  password: "123456",
-  port: 5432,
+  user: process.env.POSTGRES_USER,
+  host: process.env.POSTGRES_HOST,
+  database: process.env.POSTGRES_DATABASE,
+  password: process.env.POSTGRES_PASSWORD,
+  port: Number(process.env.POSTGRES_PORT),
 });
 
 export async function fetchCustomers(
