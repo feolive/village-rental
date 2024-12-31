@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Equipment, Category,EquipmentQuery } from "@/app/lib/definitions";
+import { Equipment, Category, EquipmentQuery } from "@/app/lib/definitions";
 import {
   fetchEquipments,
   fetchCategories,
   addCategory,
 } from "@/app/lib/data-brokers";
 import EquipmentModal from "@/components/EquipmentModal";
-
+import "@/app/styles/custom.css";
 
 export default function EquipmentPage() {
   const [equipments, setEquipments] = useState<EquipmentQuery[]>([]);
@@ -23,15 +23,75 @@ export default function EquipmentPage() {
   const [currentEquipment, setCurrentEquipment] = useState<Equipment>(
     {} as Equipment
   );
-
+  const [currentCategory, setCurrentCategory] = useState<Category>(
+    {} as Category
+  );
+  const ctgTargetRef = useRef(null);
   const ctgRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     allEquipments();
     fetchCategories().then((categories) => {
       setCategories(categories);
     });
+    document.addEventListener("click", closeCategoryUpdate);
+    return () => {
+      document.removeEventListener("click", closeCategoryUpdate);
+    };
   }, []);
+
+  
+  const closeCategoryUpdate = (e) => {
+    if (
+      ctgTargetRef.current !== null &&
+      ctgTargetRef.current !== undefined &&
+      e.target !== ctgTargetRef.current
+    ) {
+      let top = ctgTargetRef.current.offsetTop;
+      let bottom = top + ctgTargetRef.current.offsetHeight;
+      let left = ctgTargetRef.current.offsetLeft;
+      let right = left + ctgTargetRef.current.offsetWidth;
+      if (
+        e.clientY >= top &&
+        e.clientY <= bottom &&
+        e.clientX >= left &&
+        e.clientX <= right
+      ) {
+        return;
+      }
+      ctgTargetRef.current.classList.remove("active");
+      ctgTargetRef.current.firstElementChild.classList.remove("gone");
+      ctgTargetRef.current.lastElementChild.classList.remove("active");
+      
+    }
+  }
+
+  
+
+    // document.addEventListener("click", (e) => {
+    //   if (
+    //     ctgTarget !== null &&
+    //     ctgTarget !== undefined &&
+    //     e.target !== ctgTarget
+    //   ) {
+    //     let top = ctgTarget.offsetTop;
+    //     let bottom = top + ctgTarget.offsetHeight;
+    //     let left = ctgTarget.offsetLeft;
+    //     let right = left + ctgTarget.offsetWidth;
+    //     if (
+    //       e.clientY >= top &&
+    //       e.clientY <= bottom &&
+    //       e.clientX >= left &&
+    //       e.clientX <= right
+    //     ) {
+    //       return;
+    //     }
+    //     ctgTarget.classList.remove("active");
+    //     ctgTarget.firstElementChild.classList.remove("gone");
+    //     ctgTarget.lastElementChild.classList.remove("active");
+    //   }
+    // });
 
   const allEquipments = async () => {
     const equipments = await fetchEquipments(null);
@@ -49,13 +109,13 @@ export default function EquipmentPage() {
 
   const openCategory = () => {
     if (ctgRef.current !== null && ctgRef.current !== undefined) {
-      ctgRef.current.style.display = "block";
+      ctgRef.current.classList.add("show");
     }
   };
 
   const cancelCategory = () => {
     if (ctgRef.current !== null && ctgRef.current !== undefined) {
-      ctgRef.current.style.display = "none";
+      ctgRef.current.classList.remove("show");
     }
     setNewCtg({} as Category);
   };
@@ -69,15 +129,15 @@ export default function EquipmentPage() {
     }
   };
 
-  const openAddEquipment = () => {   
+  const openAddEquipment = () => {
     setCurrentEquipment({} as Equipment);
     setDisplayAdd(true);
-  } 
+  };
 
   const openEditEquipment = (equipment: EquipmentQuery) => {
     setCurrentEquipment(convertEquipment(equipment));
     setDisplayUpdate(true);
-  }
+  };
 
   const convertEquipment = (equipment: EquipmentQuery): Equipment => {
     return {
@@ -92,9 +152,21 @@ export default function EquipmentPage() {
     } as Equipment;
   };
 
-  const editCategory = () => {
-    
-  }
+  const editCategory = (e) => {
+    let element = e.target;
+    if (element.tagName === "INPUT") {
+      return;
+    }
+    if (!element.classList.contains("active")) {
+      element.classList.add("active");
+      element.firstElementChild.classList.add("gone");
+      element.lastElementChild.classList.add("active");
+      closeCategoryUpdate(e);
+      ctgTargetRef.current = e.target;
+    }
+  };
+
+  
 
   return (
     <div className="container mx-auto p-4">
@@ -122,7 +194,7 @@ export default function EquipmentPage() {
           onChange={(e) => setSearchCategory(e.target.value)}
         >
           <option value="">All Categories</option>
-          {categories.map((category) => (
+          {categories?.map((category) => (
             <option key={category.number} value={category.number}>
               {category.description}
             </option>
@@ -161,11 +233,20 @@ export default function EquipmentPage() {
               <tr key={equipment.id}>
                 <td>{equipment.id}</td>
                 <td>{equipment.name}</td>
-                <td><div className="badge badge-secondary badge-outline">{equipment.ctg}</div></td>
-                <td>{equipment.daily_cost.toString()}</td>
-                <td>{equipment.status?.trim() === "0" ? "Available" : "Rented"}</td>
                 <td>
-                  <button className="btn btn-xs btn-accent btn-outline" onClick={() => openEditEquipment(equipment)}>
+                  <div className="badge badge-secondary badge-outline">
+                    {equipment.ctg}
+                  </div>
+                </td>
+                <td>{equipment.daily_cost.toString()}</td>
+                <td>
+                  {equipment.status?.trim() === "0" ? "Available" : "Rented"}
+                </td>
+                <td>
+                  <button
+                    className="btn btn-xs btn-accent btn-outline"
+                    onClick={() => openEditEquipment(equipment)}
+                  >
                     Edit
                   </button>
                 </td>
@@ -181,31 +262,59 @@ export default function EquipmentPage() {
         isUpdate={true}
         categories={categories}
       />
-          
+
       {/* categories */}
       <div className="mt-24">
         <h2 className="text-xl font-bold mb-4">Categories</h2>
         <div className="h-[300px] w-3/4 flex justify-start flex-nowrap items-center gap-2 overflow-x-scroll">
-          {categories.map((category) => (
-              <div className="card group shrink-0 grow-0 h-40 w-56 bg-neutral text-neutral-content shadow-md hover:cursor-pointer hover:scale-110 transition-transform duration-300">
-                <div className="card-body">
-                  <div className="card-title badge badge-secondary badge-outline text-sm">
-                    {category.description}
-                  </div>
-                  <p className="mt-4">
-                    number{" "}
-                    <span className="ml-2 badge badge-secondary">
-                      {category.number}
-                    </span>
-                  </p>
-                  {/* <button className="btn btn-outline btn-sm btn-square absolute bottom-4 right-4 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto duration-300 transition-opacity " onClick={openEditCategory}>edit</button> */}
+          {categories?.map((category) => (
+            <div
+              id={"ctg_" + category.number}
+              className="category-card"
+              key={category.number}
+              onClick={(e) => editCategory(e)}
+            >
+              <div className="category-display">
+                <div className="card-title badge badge-secondary badge-outline text-sm">
+                  {category.description}
                 </div>
+                <p className="mt-4">
+                  number{" "}
+                  <span className="ml-2 badge badge-secondary">
+                    {category.number}
+                  </span>
+                </p>
               </div>
+              <div className="category-update">
+                <input
+                  className="input input-bordered h-8 w-2/3 mr-1 ctg-input"
+                  type="text"
+                  value={category.description}
+                  onChange={(e) =>
+                    setCurrentCategory({
+                      ...currentCategory,
+                      description: e.target.value,
+                    })
+                  }
+                />
+                <input
+                  className="input input-bordered h-8 w-2/3 mr-1 ctg-input"
+                  type="text"
+                  value={category.number}
+                  onChange={(e) =>
+                    setCurrentCategory({
+                      ...currentCategory,
+                      number: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
           ))}
           <div className="carousel-item">
             <div
               ref={ctgRef}
-              className="card shrink-0 grow-0 h-40 w-56 bg-neutral text-neutral-start shadow-md hidden"
+              className="card shrink-0 grow-0 h-40 w-56 bg-neutral text-neutral-start shadow-md new-card"
             >
               <div className="card-body p-2 text-sm flex flex-col justify-center mt-6">
                 <div className="flex items-center">
@@ -247,8 +356,9 @@ export default function EquipmentPage() {
               </div>
             </div>
           </div>
-
-          <div className="carousel-item">
+          {/* add category */}
+          {  categories && 
+          <div className="carousel-item" id="add-btn">
             <div className="card shrink-0 grow-0 h-40 w-56 bg-neutral text-neutral-start shadow-md hover:cursor-pointer hover:scale-110 transition-transform duration-300">
               <div className="card-body">
                 <button
@@ -259,7 +369,7 @@ export default function EquipmentPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
     </div>

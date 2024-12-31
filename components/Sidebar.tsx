@@ -5,20 +5,25 @@ import clsx from "clsx";
 import { logout } from "@/app/lib/actions";
 import ThemeIcon from "@/app/ui/ThemeIcon";
 import DashboardIcon from "@/app/ui/DashboardIcon";
+import ClipIcon from "@/app/ui/ClipIcon";
+import GridIcon from "@/app/ui/GridIcon";
+import ToolIcon from "@/app/ui/ToolIcon";
+import UsersIcon from "@/app/ui/UsersIcon";
 
 const Sidebar = () => {
   const pathname = usePathname();
   const menuItems = [
-    { href: "/dashboard/customer", label: "Customers", icon: "" },
-    { href: "/dashboard/equipment", label: "Equipments", icon: "" },
-    { href: "/dashboard/rental", label: "Rentals", icon: "" },
-    { href: "/dashboard/chart", label: "Reports", icon: "" },
+    { href: "/dashboard/customer", label: "Customers", icon:  UsersIcon },
+    { href: "/dashboard/equipment", label: "Equipments", icon: ToolIcon },
+    { href: "/dashboard/rental", label: "Rentals", icon: GridIcon },
+    { href: "/dashboard/chart", label: "Reports", icon: ClipIcon },
   ];
 
   return (
     <div className="h-screen w-64 bg-base-100 text-base-content fixed left-0 top-0 ">
       <div className="mt-2 mb-16 flex flex-col items-center gap-6">
-        <div className="w-full h-10 bg-gradient-to-r from-[#6B9099] to-gray-500 rounded-badge">
+        <div className="flex flex-row justify-center items-center w-full h-10 bg-gradient-to-r from-[#6B9099] to-gray-500 rounded-badge">
+        <DashboardIcon />
           <div className="text-2xl font-bold italic ml-4 text-center">
             Village Rental
           </div>
@@ -27,7 +32,9 @@ const Sidebar = () => {
       </div>
       <nav className="py-12 ml-4">
         <ul className="space-y-6">
-          {menuItems.map((item) => (
+          {menuItems.map((item) => {
+            let Icon = item.icon;
+          return (
             <li key={item.href}>
               <Link
                 href={item.href}
@@ -35,10 +42,11 @@ const Sidebar = () => {
                   "btn-active": pathname === item.href,
                 })}
               >
-                {item.label}
+                <Icon color="white" />{item.label}
               </Link>
             </li>
-          ))}
+          )}
+        )}
         </ul>
       </nav>
 

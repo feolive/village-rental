@@ -113,7 +113,7 @@ export default function EquipmentModal({
                   value={currentEquipment.category_number}
                   onChange={handleOnChange}
                 >
-                  {categories.map((category) => (
+                  {categories?.map((category) => (
                     <option key={category.number} value={category.number}>
                       {category.description}
                     </option>

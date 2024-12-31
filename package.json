@@ -10,6 +10,7 @@
     "clean-install": "rm -rf node_modules && rm -rf package-lock.json && pnpm install"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.2",
     "@prisma/client": "^6.0.1",
     "@vercel/postgres": "^0.10.0",
     "bcrypt": "^5.1.1",
